@@ -268,6 +268,7 @@ const GroupTable: React.FC = () => {
       const requestData: { 
         groupIds: number[], 
         userId?: number,
+        chatId?: number,
         messageId?: string,
         startParam?: string
       } = {
@@ -290,9 +291,18 @@ const GroupTable: React.FC = () => {
           console.log('Raw Telegram data:', tgData);
           
           // The message_id we need should be in tgData.message.message_id
-          if (tgData && tgData.message && tgData.message.message_id) {
-            requestData.messageId = String(tgData.message.message_id);
-            console.log('Found message_id in Telegram data:', requestData.messageId);
+          if (tgData && tgData.message) {
+            // Get message_id if available
+            if (tgData.message.message_id) {
+              requestData.messageId = String(tgData.message.message_id);
+              console.log('Found message_id in Telegram data:', requestData.messageId);
+            }
+            
+            // Get chat_id if available
+            if (tgData.message.chat && tgData.message.chat.id) {
+              requestData.chatId = tgData.message.chat.id;
+              console.log('Found chat_id in Telegram data:', requestData.chatId);
+            }
           } 
           // Fallback: Try to get from start param or query string as before
           else if ((window as any).Telegram.WebApp.startParam) {
