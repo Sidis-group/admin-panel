@@ -310,31 +310,15 @@ const GroupTable: React.FC = () => {
     zIndex: 10
   };
 
-  // Styles for components
-  const checkboxStyle = { 
-    width: '18px',
-    height: '18px',
-    borderRadius: '4px',
-    border: '1px solid #9CA3AF',
-    marginRight: '12px',
-    cursor: 'pointer',
-  };
-
-  const buttonStyle = {
-    height: '40px',
-    padding: '0 15px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 500,
-    fontSize: '14px',
-  };
-
-  const tableStyle = {
-    borderCollapse: 'separate',
-    borderSpacing: '0 10px',
-    width: '100%',
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backdropFilter: 'blur(2px)',
+    zIndex: 10
   };
 
   return (
@@ -491,10 +475,7 @@ const GroupTable: React.FC = () => {
           {/* Dark overlay */}
           <div 
             className="fixed inset-0 z-40" 
-            style={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              backdropFilter: 'blur(2px)'
-            }}
+            style={overlayStyle}
             onClick={cancelDelete}
           ></div>
           
