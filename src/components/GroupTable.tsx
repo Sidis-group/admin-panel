@@ -276,10 +276,19 @@ const GroupTable: React.FC = () => {
       
       setSendingStatus('success');
       
-      // Reset success status after 3 seconds
-      setTimeout(() => {
-        setSendingStatus('idle');
-      }, 3000);
+      // Close the Telegram Web App after successful message send
+      if (window.Telegram && window.Telegram.WebApp) {
+        // Allow a brief moment for the user to see the success status
+        setTimeout(() => {
+          // Close the Telegram Web App
+          window.Telegram.WebApp.close();
+        }, 1000);
+      } else {
+        // If not in Telegram WebApp, just reset the status after a delay
+        setTimeout(() => {
+          setSendingStatus('idle');
+        }, 3000);
+      }
       
     } catch (error) {
       console.error('Error sending message:', error);
