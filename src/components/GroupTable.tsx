@@ -264,70 +264,98 @@ const GroupTable: React.FC = () => {
       
       console.log('Sending request to webhook URL:', webhookUrl);
       
-      // Prepare the request payload
-      const requestData: { 
-        groupIds: number[], 
-        userId?: number,
-        chatId?: number,
-        messageId?: string,
-        startParam?: string
-      } = {
-        groupIds: selectedGroupIds
-      };
+      // Hard-coded test to verify if we can send these values
+      let chatId = undefined;
+      let messageId = undefined;
+      let userId = undefined;
       
-      // Add Telegram user ID if available
-      if (typeof window !== 'undefined' && 'Telegram' in window && window.Telegram?.WebApp) {
-        // Get user ID if available
-        const telegramUser = (window as any).Telegram.WebApp.initDataUnsafe?.user;
-        if (telegramUser && telegramUser.id) {
-          requestData.userId = telegramUser.id;
-          console.log('Telegram user ID added to request:', telegramUser.id);
-        }
+      // Try getting Telegram data with full logging
+      if (typeof window !== 'undefined' && 'Telegram' in window) {
+        console.log("Telegram object exists in window");
         
-        // Get the message_id from the initiating message in a more direct way
+        // Log the entire WebApp object to see what's available
+        console.log("Telegram WebApp object:", (window as any).Telegram.WebApp);
+        
         try {
-          // Get the raw initDataUnsafe which contains all information from Telegram
-          const tgData = (window as any).Telegram.WebApp.initDataUnsafe;
-          console.log('Raw Telegram data:', tgData);
+          // Get user data first
+          if ((window as any).Telegram.WebApp.initDataUnsafe?.user) {
+            const user = (window as any).Telegram.WebApp.initDataUnsafe.user;
+            console.log("User data:", user);
+            userId = user.id;
+          }
           
-          // The message_id we need should be in tgData.message.message_id
-          if (tgData && tgData.message) {
-            // Get message_id if available
-            if (tgData.message.message_id) {
-              requestData.messageId = String(tgData.message.message_id);
-              console.log('Found message_id in Telegram data:', requestData.messageId);
+          // Try different paths to get the chat and message data
+          if ((window as any).Telegram.WebApp.initDataUnsafe?.message) {
+            const message = (window as any).Telegram.WebApp.initDataUnsafe.message;
+            console.log("Message data found:", message);
+            
+            if (message.message_id) {
+              messageId = message.message_id;
+              console.log("Message ID found:", messageId);
             }
             
-            // Get chat_id if available
-            if (tgData.message.chat && tgData.message.chat.id) {
-              requestData.chatId = tgData.message.chat.id;
-              console.log('Found chat_id in Telegram data:', requestData.chatId);
+            if (message.chat?.id) {
+              chatId = message.chat.id;
+              console.log("Chat ID found:", chatId);
             }
           } 
-          // Fallback: Try to get from start param or query string as before
-          else if ((window as any).Telegram.WebApp.startParam) {
-            requestData.startParam = (window as any).Telegram.WebApp.startParam;
-            console.log('Using startParam as fallback:', requestData.startParam);
-            
-            // Try to extract from initData query string
+          // Try to parse the raw initData as a string
+          else {
+            console.log("Trying alternative methods...");
             const initData = (window as any).Telegram.WebApp.initData;
-            const initDataObj = new URLSearchParams(initData);
+            console.log("Raw initData:", initData);
             
-            if (initDataObj.has('message_id')) {
-              const msgId = initDataObj.get('message_id');
-              if (msgId) {
-                requestData.messageId = msgId;
-                console.log('Extracted message_id from initData:', requestData.messageId);
+            try {
+              // Try to parse as JSON if possible
+              if (initData && typeof initData === 'string' && initData.includes('{')) {
+                const jsonStart = initData.indexOf('{');
+                const jsonEnd = initData.lastIndexOf('}') + 1;
+                if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                  const jsonStr = initData.substring(jsonStart, jsonEnd);
+                  console.log("Attempting to parse JSON:", jsonStr);
+                  try {
+                    const parsedData = JSON.parse(jsonStr);
+                    console.log("Parsed data:", parsedData);
+                    
+                    // Look for message_id and chat_id in the parsed data
+                    if (parsedData.message?.message_id) {
+                      messageId = parsedData.message.message_id;
+                    }
+                    if (parsedData.message?.chat?.id) {
+                      chatId = parsedData.message.chat.id;
+                    }
+                  } catch (err) {
+                    console.log("Failed to parse JSON:", err);
+                  }
+                }
               }
-            } else if (requestData.startParam && requestData.startParam.includes('message_id')) {
-              // Sometimes message_id is part of startParam
-              requestData.messageId = requestData.startParam;
+            } catch (err) {
+              console.log("Error in alternative methods:", err);
             }
           }
         } catch (err) {
-          console.log('Error extracting message_id:', err);
+          console.log("Error extracting Telegram data:", err);
         }
       }
+      
+      // Prepare the final request payload
+      interface RequestData {
+        groupIds: number[];
+        userId?: number;
+        chatId?: number;
+        messageId?: string | number;
+      }
+      
+      const requestData: RequestData = {
+        groupIds: selectedGroupIds
+      };
+      
+      // Add the telegram data if available
+      if (userId) requestData.userId = userId;
+      if (chatId) requestData.chatId = chatId;
+      if (messageId) requestData.messageId = messageId;
+      
+      console.log("Final request payload:", requestData);
       
       // Send the data to the webhook
       const response = await fetch(webhookUrl, {
