@@ -261,13 +261,27 @@ const GroupTable: React.FC = () => {
         return;
       }
       
-      // Send the selected group IDs to the webhook
+      // Prepare the request payload
+      const requestData: { groupIds: number[], userId?: number } = {
+        groupIds: selectedGroupIds
+      };
+      
+      // Add Telegram user ID if available
+      if (typeof window !== 'undefined' && 'Telegram' in window && window.Telegram?.WebApp) {
+        const telegramUser = (window as any).Telegram.WebApp.initDataUnsafe?.user;
+        if (telegramUser && telegramUser.id) {
+          requestData.userId = telegramUser.id;
+          console.log('Telegram user ID added to request:', telegramUser.id);
+        }
+      }
+      
+      // Send the data to the webhook
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ groupIds: selectedGroupIds }),
+        body: JSON.stringify(requestData),
       });
       
       if (!response.ok) {
