@@ -264,90 +264,63 @@ const GroupTable: React.FC = () => {
       
       console.log('Sending request to webhook URL:', webhookUrl);
       
-      // Підготуємо об'єкт з усіма даними від Telegram
-      interface TelegramDataObject {
-        [key: string]: any;
-      }
-      
-      interface RequestDataType {
-        groupIds: number[];
-        telegramData: TelegramDataObject;
-      }
-      
-      const requestData: RequestDataType = {
-        groupIds: selectedGroupIds,
-        telegramData: {} 
+      // Базовий об'єкт запиту з вибраними групами
+      const requestPayload: any = {
+        groupIds: selectedGroupIds
       };
       
-      // Отримуємо абсолютно всі дані з Telegram WebApp
+      // Якщо є Telegram об'єкт, додаємо необроблені дані
       if (typeof window !== 'undefined' && 'Telegram' in window) {
         try {
-          const tg = (window as any).Telegram;
+          // Передаємо абсолютно всі дані від Telegram
+          const telegram = (window as any).Telegram;
           
-          // Додаємо всі доступні дані WebApp у структурованому вигляді
-          if (tg.WebApp) {
-            // Копіюємо всі властивості WebApp
-            for (const key in tg.WebApp) {
-              // Виключаємо функції, які не можна серіалізувати
-              if (typeof tg.WebApp[key] !== 'function') {
-                try {
-                  requestData.telegramData[key] = tg.WebApp[key];
-                } catch (err) {
-                  console.log(`Не вдалося додати властивість ${key}:`, err);
-                }
-              }
+          // Зберігаємо об'єкт WebApp
+          if (telegram && telegram.WebApp) {
+            // Зберігаємо пряме посилання на всі доступні дані
+            requestPayload.telegramRaw = telegram.WebApp;
+            
+            // Додаємо окремо найважливіші дані для зручності
+            if (telegram.WebApp.initDataUnsafe) {
+              requestPayload.initDataUnsafe = telegram.WebApp.initDataUnsafe;
             }
             
-            // Додаємо окремо важливі властивості
-            if (tg.WebApp.initDataUnsafe) {
-              requestData.telegramData.initDataUnsafe = tg.WebApp.initDataUnsafe;
+            if (telegram.WebApp.initData) {
+              requestPayload.initData = telegram.WebApp.initData;
             }
             
-            if (tg.WebApp.initData) {
-              requestData.telegramData.initData = tg.WebApp.initData;
-              
-              // Спробуємо розпарсити initData як URL-параметри
-              try {
-                const parsedInitData: TelegramDataObject = {};
-                const urlParams = new URLSearchParams(tg.WebApp.initData);
-                
-                // Використовуємо forEach замість for...of для сумісності
-                urlParams.forEach((value, key) => {
-                  parsedInitData[key] = value;
-                  
-                  // Спробуємо розпарсити data як JSON, якщо можливо
-                  if (key === 'data' || key === 'start_param') {
-                    try {
-                      const parsedKey = `${key}_parsed` as string;
-                      parsedInitData[parsedKey] = JSON.parse(value);
-                    } catch {
-                      // Ігноруємо помилки парсингу
-                    }
-                  }
-                });
-                
-                requestData.telegramData.parsedInitData = parsedInitData;
-              } catch (err) {
-                console.log('Помилка при парсингу initData:', err);
-              }
+            // Якщо є user, також додаємо для сумісності
+            if (telegram.WebApp.initDataUnsafe && telegram.WebApp.initDataUnsafe.user) {
+              requestPayload.userId = telegram.WebApp.initDataUnsafe.user.id;
+            }
+            
+            // Додаємо callback_query якщо є
+            if (telegram.WebApp.initDataUnsafe && telegram.WebApp.initDataUnsafe.callback_query) {
+              requestPayload.callback_query = telegram.WebApp.initDataUnsafe.callback_query;
+            }
+            
+            // Додаємо message якщо є
+            if (telegram.WebApp.initDataUnsafe && telegram.WebApp.initDataUnsafe.message) {
+              requestPayload.message = telegram.WebApp.initDataUnsafe.message;
             }
           }
           
-          console.log('Зібрані дані телеграму:', requestData.telegramData);
+          // Виводимо в консоль повний необроблений об'єкт для відлагодження
+          console.log('Повний об\'єкт Telegram:', telegram);
+          console.log('Дані, які будуть відправлені:', requestPayload);
+          
         } catch (err) {
-          console.log('Помилка при зборі даних Telegram:', err);
+          console.error('Помилка при отриманні даних Telegram:', err);
         }
       }
       
-      console.log("Фінальний запит до вебхука:", requestData);
-      
-      // Відправляємо дані на вебхук
+      // Відправляємо запит на вебхук
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(requestPayload),
       });
       
       if (!response.ok) {
