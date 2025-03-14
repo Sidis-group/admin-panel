@@ -19,6 +19,9 @@
 .env.test.local
 .env.production.local
 
+# Don't ignore .env.production as we need it for Netlify
+!.env.production
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
