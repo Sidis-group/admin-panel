@@ -56,16 +56,17 @@ interface ConfirmationPopupProps {
 const ConfirmationPopup: React.FC<ConfirmationPopupProps> = ({ onConfirm, onCancel }) => {
   return (
     <div 
-      className="fixed bg-white rounded-lg z-50"
+      className="fixed bg-white rounded-lg"
       style={{
         left: '50%',
         top: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 'calc(100% - 120px)', // 60px margin on each side
-        maxWidth: '400px',
-        padding: '20px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-        border: '1px solid rgba(229, 231, 235, 0.7)'
+        transform: 'translate(-50%, -50%)', 
+        width: 'calc(100% - 120px)', 
+        maxWidth: '400px', 
+        padding: '20px', 
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)', 
+        border: '1px solid rgba(229, 231, 235, 0.7)',
+        zIndex: 60
       }}
     >
       <h3 className="text-lg font-medium text-gray-800 text-center" style={{ margin: '30px 0' }}>Do you really want to delete the groups?</h3>
@@ -307,7 +308,7 @@ const GroupTable: React.FC = () => {
     borderTop: '1px solid #e5e7eb',
     boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
     backgroundColor: 'rgba(255,255,255,0.95)',
-    zIndex: 10
+    zIndex: 40
   };
 
   const overlayStyle: React.CSSProperties = {
@@ -318,7 +319,7 @@ const GroupTable: React.FC = () => {
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     backdropFilter: 'blur(2px)',
-    zIndex: 10
+    zIndex: 50
   };
 
   return (
@@ -474,7 +475,7 @@ const GroupTable: React.FC = () => {
         <>
           {/* Dark overlay */}
           <div 
-            className="fixed inset-0 z-40" 
+            className="fixed inset-0" 
             style={overlayStyle}
             onClick={cancelDelete}
           ></div>
