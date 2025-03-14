@@ -238,6 +238,9 @@ const GroupTable: React.FC = () => {
   // Handle send message functionality
   const handleSendMessage = async () => {
     try {
+      setSending(true);
+      setSendingStatus('idle');
+      
       // Get the IDs of all selected (chouse: true) groups
       const selectedGroupIds = groups
         .filter(group => group.chouse)
@@ -245,18 +248,9 @@ const GroupTable: React.FC = () => {
       
       if (selectedGroupIds.length === 0) {
         alert('Please select at least one group');
+        setSending(false);
         return;
       }
-      
-      // Close the Telegram WebApp immediately when running inside Telegram
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.close();
-        return; // Stop execution after closing the WebApp
-      }
-      
-      // For non-Telegram environments, continue with the regular flow
-      setSending(true);
-      setSendingStatus('idle');
       
       const webhookUrl = process.env.REACT_APP_WEBHOOK_URL;
       
@@ -282,10 +276,18 @@ const GroupTable: React.FC = () => {
       
       setSendingStatus('success');
       
-      // Reset success status after 3 seconds
-      setTimeout(() => {
-        setSendingStatus('idle');
-      }, 3000);
+      // Check if running in Telegram WebApp
+      if (typeof window !== 'undefined' && 'Telegram' in window && window.Telegram?.WebApp) {
+        // Wait 1 second after successful response before closing
+        setTimeout(() => {
+          (window as any).Telegram.WebApp.close();
+        }, 1000);
+      } else {
+        // If not in Telegram WebApp, just reset the status after a delay
+        setTimeout(() => {
+          setSendingStatus('idle');
+        }, 3000);
+      }
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -405,7 +407,7 @@ const GroupTable: React.FC = () => {
                       className="w-5 h-5"
                       style={{ color: '#DC2626' }}
                     >
-                      <path fillRule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 01-.256-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.256 1.478l-.209-.035-1.005 13.07a3 3 0 01-2.991 2.77H8.084a3 3 0 01-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
                     </svg>
                   </span>
                 )}
