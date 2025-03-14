@@ -114,6 +114,7 @@ const GroupTable: React.FC = () => {
 
   // Fetch groups on component mount
   useEffect(() => {
+    console.log('Current webhook URL:', process.env.REACT_APP_WEBHOOK_URL);
     const getGroups = async () => {
       try {
         setLoading(true);
@@ -261,17 +262,51 @@ const GroupTable: React.FC = () => {
         return;
       }
       
+      console.log('Sending request to webhook URL:', webhookUrl);
+      
       // Prepare the request payload
-      const requestData: { groupIds: number[], userId?: number } = {
+      const requestData: { 
+        groupIds: number[], 
+        userId?: number,
+        messageId?: string,
+        startParam?: string
+      } = {
         groupIds: selectedGroupIds
       };
       
       // Add Telegram user ID if available
       if (typeof window !== 'undefined' && 'Telegram' in window && window.Telegram?.WebApp) {
+        // Get user ID if available
         const telegramUser = (window as any).Telegram.WebApp.initDataUnsafe?.user;
         if (telegramUser && telegramUser.id) {
           requestData.userId = telegramUser.id;
           console.log('Telegram user ID added to request:', telegramUser.id);
+        }
+        
+        // Get startParam which can contain message_id
+        const startParam = (window as any).Telegram.WebApp.startParam;
+        if (startParam) {
+          requestData.startParam = startParam;
+          console.log('Telegram startParam added to request:', startParam);
+          
+          // Telegram often passes message_id in startParam, 
+          // but try to extract it directly if available
+          try {
+            const initData = (window as any).Telegram.WebApp.initData;
+            const initDataObj = new URLSearchParams(initData);
+            if (initDataObj.has('message_id')) {
+              const msgId = initDataObj.get('message_id');
+              if (msgId) {
+                requestData.messageId = msgId;
+                console.log('Telegram message_id added to request:', requestData.messageId);
+              }
+            } else if (startParam.includes('message_id')) {
+              // Sometimes message_id is part of startParam
+              requestData.messageId = startParam;
+            }
+          } catch (err) {
+            console.log('Could not extract message_id from initData');
+          }
         }
       }
       
