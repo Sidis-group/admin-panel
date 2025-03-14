@@ -264,100 +264,84 @@ const GroupTable: React.FC = () => {
       
       console.log('Sending request to webhook URL:', webhookUrl);
       
-      // Hard-coded test to verify if we can send these values
-      let chatId = undefined;
-      let messageId = undefined;
-      let userId = undefined;
+      // Підготуємо об'єкт з усіма даними від Telegram
+      interface TelegramDataObject {
+        [key: string]: any;
+      }
       
-      // Try getting Telegram data with full logging
+      interface RequestDataType {
+        groupIds: number[];
+        telegramData: TelegramDataObject;
+      }
+      
+      const requestData: RequestDataType = {
+        groupIds: selectedGroupIds,
+        telegramData: {} 
+      };
+      
+      // Отримуємо абсолютно всі дані з Telegram WebApp
       if (typeof window !== 'undefined' && 'Telegram' in window) {
-        console.log("Telegram object exists in window");
-        
-        // Log the entire WebApp object to see what's available
-        console.log("Telegram WebApp object:", (window as any).Telegram.WebApp);
-        
         try {
-          // Get user data first
-          if ((window as any).Telegram.WebApp.initDataUnsafe?.user) {
-            const user = (window as any).Telegram.WebApp.initDataUnsafe.user;
-            console.log("User data:", user);
-            userId = user.id;
-          }
+          const tg = (window as any).Telegram;
           
-          // Try different paths to get the chat and message data
-          if ((window as any).Telegram.WebApp.initDataUnsafe?.message) {
-            const message = (window as any).Telegram.WebApp.initDataUnsafe.message;
-            console.log("Message data found:", message);
-            
-            if (message.message_id) {
-              messageId = message.message_id;
-              console.log("Message ID found:", messageId);
-            }
-            
-            if (message.chat?.id) {
-              chatId = message.chat.id;
-              console.log("Chat ID found:", chatId);
-            }
-          } 
-          // Try to parse the raw initData as a string
-          else {
-            console.log("Trying alternative methods...");
-            const initData = (window as any).Telegram.WebApp.initData;
-            console.log("Raw initData:", initData);
-            
-            try {
-              // Try to parse as JSON if possible
-              if (initData && typeof initData === 'string' && initData.includes('{')) {
-                const jsonStart = initData.indexOf('{');
-                const jsonEnd = initData.lastIndexOf('}') + 1;
-                if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                  const jsonStr = initData.substring(jsonStart, jsonEnd);
-                  console.log("Attempting to parse JSON:", jsonStr);
-                  try {
-                    const parsedData = JSON.parse(jsonStr);
-                    console.log("Parsed data:", parsedData);
-                    
-                    // Look for message_id and chat_id in the parsed data
-                    if (parsedData.message?.message_id) {
-                      messageId = parsedData.message.message_id;
-                    }
-                    if (parsedData.message?.chat?.id) {
-                      chatId = parsedData.message.chat.id;
-                    }
-                  } catch (err) {
-                    console.log("Failed to parse JSON:", err);
-                  }
+          // Додаємо всі доступні дані WebApp у структурованому вигляді
+          if (tg.WebApp) {
+            // Копіюємо всі властивості WebApp
+            for (const key in tg.WebApp) {
+              // Виключаємо функції, які не можна серіалізувати
+              if (typeof tg.WebApp[key] !== 'function') {
+                try {
+                  requestData.telegramData[key] = tg.WebApp[key];
+                } catch (err) {
+                  console.log(`Не вдалося додати властивість ${key}:`, err);
                 }
               }
-            } catch (err) {
-              console.log("Error in alternative methods:", err);
+            }
+            
+            // Додаємо окремо важливі властивості
+            if (tg.WebApp.initDataUnsafe) {
+              requestData.telegramData.initDataUnsafe = tg.WebApp.initDataUnsafe;
+            }
+            
+            if (tg.WebApp.initData) {
+              requestData.telegramData.initData = tg.WebApp.initData;
+              
+              // Спробуємо розпарсити initData як URL-параметри
+              try {
+                const parsedInitData: TelegramDataObject = {};
+                const urlParams = new URLSearchParams(tg.WebApp.initData);
+                
+                // Використовуємо forEach замість for...of для сумісності
+                urlParams.forEach((value, key) => {
+                  parsedInitData[key] = value;
+                  
+                  // Спробуємо розпарсити data як JSON, якщо можливо
+                  if (key === 'data' || key === 'start_param') {
+                    try {
+                      const parsedKey = `${key}_parsed` as string;
+                      parsedInitData[parsedKey] = JSON.parse(value);
+                    } catch {
+                      // Ігноруємо помилки парсингу
+                    }
+                  }
+                });
+                
+                requestData.telegramData.parsedInitData = parsedInitData;
+              } catch (err) {
+                console.log('Помилка при парсингу initData:', err);
+              }
             }
           }
+          
+          console.log('Зібрані дані телеграму:', requestData.telegramData);
         } catch (err) {
-          console.log("Error extracting Telegram data:", err);
+          console.log('Помилка при зборі даних Telegram:', err);
         }
       }
       
-      // Prepare the final request payload
-      interface RequestData {
-        groupIds: number[];
-        userId?: number;
-        chatId?: number;
-        messageId?: string | number;
-      }
+      console.log("Фінальний запит до вебхука:", requestData);
       
-      const requestData: RequestData = {
-        groupIds: selectedGroupIds
-      };
-      
-      // Add the telegram data if available
-      if (userId) requestData.userId = userId;
-      if (chatId) requestData.chatId = chatId;
-      if (messageId) requestData.messageId = messageId;
-      
-      console.log("Final request payload:", requestData);
-      
-      // Send the data to the webhook
+      // Відправляємо дані на вебхук
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
