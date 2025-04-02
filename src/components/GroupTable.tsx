@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Group, fetchGroups, updateGroupChouse, updateAllGroupsChouse } from '../services/supabase';
-import { Link } from 'react-router-dom';
 
 // Since we're having issues with Heroicons, let's create a simple magnifying glass icon component
 interface IconProps {
@@ -21,30 +20,6 @@ const SearchIcon: React.FC<IconProps> = ({ className = '' }) => (
       strokeWidth={2} 
       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
     />
-  </svg>
-);
-
-// Edit icon component
-const EditIcon: React.FC<IconProps> = ({ className = '' }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className={`w-5 h-5 ${className}`}
-  >
-    <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32L19.513 8.2z" />
-  </svg>
-);
-
-// Check icon for "Done" state
-const CheckIcon: React.FC<IconProps> = ({ className = '' }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className={`w-5 h-5 ${className}`}
-  >
-    <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
   </svg>
 );
 

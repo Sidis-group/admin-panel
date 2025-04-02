@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Group, fetchGroups, updateGroupChouse, updateAllGroupsChouse, deleteGroups } from '../services/supabase';
-import { Link } from 'react-router-dom';
 
 // Search icon component (reused from GroupTable)
 const SearchIcon: React.FC<{ className?: string }> = ({ className = '' }) => (
